@@ -1,17 +1,31 @@
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
+import java.util.Timer;
+
 public class Main {
     public static void main(String[] args) {
-        // Press Opt+Enter with your caret at the highlighted text to see how
-        // IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+        Main main = new Main();
+        Thread thread = new Thread(main.new LongRunningTask());
+        thread.start();
 
-        // Press Ctrl+R or click the green arrow button in the gutter to run the code.
-        for (int i = 1; i <= 5; i++) {
+        Timer timer = new Timer();
+        TimeOutTask timeOutTask = new TimeOutTask(thread, timer);
+        timer.schedule(timeOutTask, 3000);
+    }
 
-            // Press Ctrl+D to start debugging your code. We have set one breakpoint
-            // for you, but you can always add more by pressing Cmd+F8.
-            System.out.println("i = " + i);
+    class LongRunningTask implements Runnable {
+        @Override
+        public void run() {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    System.out.println("Processing step " + i);
+
+                    Thread.sleep(1000); // 1초 동안 일시 정지
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt(); // 인터럽트 상태 복원
+            }
+
+            System.out.println("Long running task completed.");
         }
     }
 }
