@@ -1,8 +1,8 @@
 package sender;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import same.DataPacket;
+
+import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -15,6 +15,7 @@ public class UDPSender {
     public static void main(String[] args) {
 
         try {
+            int seq = 0;
             PacketLoss packetLoss = new PacketLoss();
             while (true) {
                 //패킷 하나만 전달
@@ -22,15 +23,29 @@ public class UDPSender {
                 System.out.print("\nmessage : \n");
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
                 String readLine = bufferedReader.readLine();
+                byte[] bytes = readLine.getBytes();
+                //전송할 DataPacket을 stream화 시작
+                byte[] byteToDataPacket = new byte[bytes.length];
+                System.arraycopy(bytes, 0, byteToDataPacket, 0, bytes.length);
+                DataPacket dataPacket = new DataPacket(seq,readLine.length(),byteToDataPacket);
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(new BufferedOutputStream(outputStream));
+
+                objectOutputStream.flush();
+                objectOutputStream.writeObject((Object)dataPacket);
+                objectOutputStream.flush();
+
 
                 // packetLoss
                 if(!packetLoss.random()){
                     System.out.println("패킷 잃어버림");
                 }
                 //패킷 잃어버렸을 때 만들어야함 . seq번호로
-                byte buffer[] = readLine.getBytes();
+                byte buffer[] = outputStream.toByteArray();
                 DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("localhost"), port);
                 datagramSocket.send(datagramPacket);
+
+                objectOutputStream.close();
 
                 byte ack[] = new byte[100];
                 DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
