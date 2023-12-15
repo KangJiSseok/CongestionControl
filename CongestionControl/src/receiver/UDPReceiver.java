@@ -1,17 +1,25 @@
+package receiver;
+
+
+import sender.PacketLoss;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
 
-public class UDPServer {
 
-    public UDPServer(int port){
+public class UDPReceiver {
+
+    public UDPReceiver(int port){
 
         try {
             DatagramSocket datagramSocket = new DatagramSocket(port);
+            ByteArrayOutputStream accumulatedData = new ByteArrayOutputStream();
+
             while (true){
+                System.out.println("프린트 다시 시작");
                 byte[] buffer = new byte[512];
 
                 //패킷 생성 buffer, buffer.len 크기
@@ -23,27 +31,25 @@ public class UDPServer {
                 //datagramPacket.getData() 함수는 byte[]로 반환.
 
                 String str = new String(datagramPacket.getData()).trim();
-
                 System.out.println("수신된 데이터 = " + str);
 
+                // datagramPacket.getData() 함수는 byte[]로 반환.
+                byte[] receivedData = datagramPacket.getData();
+                System.out.println("수신된 데이터 길이 = " + datagramPacket.getLength());
+
+                accumulatedData.write(receivedData,0,datagramPacket.getLength());
                 //IP주소 얻기
                 InetAddress address = datagramPacket.getAddress();
                 //Port 주소 얻기
                 port = datagramPacket.getPort();
-
                 System.out.println("address = " + address);
                 System.out.println("port = " + port);
 
-                boolean a = new PacketLoss().random();
-
-                if(a == true){
-                    datagramPacket = new DatagramPacket(datagramPacket.getData(), datagramPacket.getData().length, address, port);
-                    datagramSocket.send(datagramPacket);
-                }
-                else{
-                    System.out.println("패킷 손실 ");
-                }
-
+                //ackPacket 생성
+                byte[] ack = accumulatedData.toByteArray();
+                DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length,address,port);
+                datagramSocket.send(ackSendPacket);
+                System.out.println("ack byte 만큼 보내기 완료= " + ack);
 
 
             }
@@ -53,6 +59,6 @@ public class UDPServer {
     }
 
     public static void main(String[] args) {
-        new UDPServer(3000);
+        new UDPReceiver(3000);
     }
 }

@@ -1,8 +1,10 @@
+package sender;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
-class LongRunningTask implements Runnable {
+public class LongRunningTask implements Runnable {
 
     DatagramPacket datagramPacket;
     DatagramSocket datagramSocket;
@@ -17,9 +19,8 @@ class LongRunningTask implements Runnable {
         try {
             datagramSocket.receive(datagramPacket);
             System.out.println("server ip : "+datagramPacket.getAddress() + " , server port : "+datagramPacket.getPort());
-            System.out.println("수신된 데이터 : "+ new String(datagramPacket.getData()).trim());
+            System.out.println("ackPacket.getLength() = " + datagramPacket.getLength());
             datagramSocket.close();
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
