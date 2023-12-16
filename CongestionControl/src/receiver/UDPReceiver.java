@@ -64,10 +64,8 @@ public class UDPReceiver {
 
                 //ackPacket 생성
                 byte[] ack = accumulatedData.toByteArray();
-                System.out.println("ack.toString() = " + ack.toString());
                 DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length, address, port);
                 datagramSocket.send(ackSendPacket);
-                System.out.println("ack byte 만큼 보내기 완료= " + ack);
 
                 // 필요에 따라 스트림을 닫아주는 것이 좋습니다.
                 objectInputStream.close();

@@ -8,8 +8,6 @@ public class DataPacket implements Serializable {
     private int length;
     private byte[] data;
 
-    // 생성자, 게터, 세터 등 필요한 코드...
-
 
     public DataPacket(int seq, int length, byte[] data) {
         this.seq = seq;
