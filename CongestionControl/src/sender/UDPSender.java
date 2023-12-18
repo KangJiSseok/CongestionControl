@@ -70,6 +70,7 @@ public class UDPSender {
                 if (!packetLoss.random()) {
                     System.out.println(i + "번패킷 잃어버림");
                 } else {
+                    System.out.println(i + "번패킷 전송함");
                     datagramSocket.send(datagramPacket);
                 }
 
@@ -96,6 +97,7 @@ public class UDPSender {
         for (Thread timeoutThread : timeoutThreads) {
             try {
                 timeoutThread.join();
+                timeoutThread.interrupt();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -136,9 +138,10 @@ public class UDPSender {
             datagramSocket.receive(ackPacket);
             System.out.println("ackPacket = " + ackPacket.getLength());
             mutex.release();
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
         } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

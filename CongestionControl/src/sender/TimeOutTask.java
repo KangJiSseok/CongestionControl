@@ -15,7 +15,7 @@ public class TimeOutTask extends TimerTask{
 
     DatagramPacket ackPacket;
 
-    Semaphore mutex = Mutex.getInstance();
+
     public TimeOutTask(Thread thread, Timer timer, DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket) {
         this.thread = thread;
         this.timer = timer;
