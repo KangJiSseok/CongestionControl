@@ -22,15 +22,6 @@ public class UDPReceiver {
 
             while (true) {
                 System.out.println("프린트 다시 시작");
-//                byte[] buffer = new byte[512];
-//
-//                //패킷 생성 buffer, buffer.len 크기
-//                DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
-//                //클라이언트에서 부터 패킷 수신 (블락)
-//                System.out.println("client to server data receive wait...");
-//                datagramSocket.receive(datagramPacket);
-
-                //
 
                 byte[] receivedData = new byte[512];
                 DatagramPacket datagramPacket = new DatagramPacket(receivedData, receivedData.length);
@@ -55,6 +46,8 @@ public class UDPReceiver {
                 System.out.println("Received Object: " + receivedObject.toString());
 
                 accumulatedData.write(serializedData, 0, receivedObject.getLength());
+                //역직렬화
+
                 //IP주소 얻기
                 InetAddress address = datagramPacket.getAddress();
                 //Port 주소 얻기

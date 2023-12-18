@@ -7,21 +7,21 @@ import java.util.concurrent.Semaphore;
 
 public class LongRunningTask implements Runnable {
 
-    DatagramPacket datagramPacket;
+    DatagramPacket ackPacket;
     DatagramSocket datagramSocket;
 
     Semaphore mutex = Mutex.getInstance();
 
-    public LongRunningTask(DatagramPacket datagramPacket, DatagramSocket datagramSocket) {
-        this.datagramPacket = datagramPacket;
+    public LongRunningTask(DatagramPacket ackPacket, DatagramSocket datagramSocket) {
+        this.ackPacket = ackPacket;
         this.datagramSocket = datagramSocket;
     }
 
     @Override
     public void run() {
         try {
-            datagramSocket.receive(datagramPacket);
-            System.out.println("ackPacket = " + datagramPacket.getLength());
+            datagramSocket.receive(ackPacket);  //block
+            System.out.println("ackPacket = " + ackPacket.getLength());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
