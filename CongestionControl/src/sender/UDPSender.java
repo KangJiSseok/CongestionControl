@@ -29,9 +29,12 @@ public class UDPSender {
             String readLine;
             byte[] bytes;
             int i = 0;
-            String path = System.getProperty("user.dir") + "/src/";
+            String path = System.getProperty("user.dir") + "\\src\\";
 
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            // mac
+//            BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            // window
+            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
 
             while (true) {
                 readLine = bufferedReader.readLine();

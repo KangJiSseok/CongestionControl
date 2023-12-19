@@ -21,10 +21,10 @@ public class UDPReceiver {
             ByteArrayOutputStream accumulatedData = new ByteArrayOutputStream();
 
             while (true) {
-                System.out.println("프린트 다시 시작");
 
                 byte[] receivedData = new byte[512];
                 DatagramPacket datagramPacket = new DatagramPacket(receivedData, receivedData.length);
+
                 datagramSocket.receive(datagramPacket);
 
                 // 직렬화된 데이터 추출
@@ -52,11 +52,10 @@ public class UDPReceiver {
                 InetAddress address = datagramPacket.getAddress();
                 //Port 주소 얻기
                 port = datagramPacket.getPort();
-                System.out.println("address = " + address);
-                System.out.println("port = " + port);
 
                 //ackPacket 생성
                 byte[] ack = accumulatedData.toByteArray();
+                System.out.println("ack.length = " + ack.length);
                 DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length, address, port);
                 datagramSocket.send(ackSendPacket);
 
