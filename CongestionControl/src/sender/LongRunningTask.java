@@ -44,9 +44,10 @@ public class LongRunningTask implements Runnable {
                 mutex.acquire();
                 con.plusAckDup();
                 mutex.release();
-            }else{
+            }else if(instance.getLastAckNum()+1==num){
                 mutex.acquire();
                 con.setLastAckNum(num);
+                con.setAckDup(1);
                 mutex.release();
             }
             if(con.getAckDup()==3){
