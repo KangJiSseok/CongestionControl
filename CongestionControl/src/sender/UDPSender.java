@@ -93,7 +93,6 @@ public class UDPSender {
                     Timer timer = new Timer();
                     TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket);
                     timer.schedule(timeOutTask, 3000);
-
                     if(i == packetLen){
                         ackFinish = true;
                         break;
@@ -101,12 +100,18 @@ public class UDPSender {
                 }
                 count *= 2;
                 lastCount = count * 2;
+                Thread.sleep(3000);
+                /*
+                혼잡제어 시작
+                 */
             }
 
 
         } catch (SocketException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
