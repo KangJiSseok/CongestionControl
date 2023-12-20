@@ -67,15 +67,15 @@ public class UDPSender {
                 }
             });
 
-            int count = 1;
-            int lastCount = 1;
+            int base = 1;
+            int cwnd = 1;
             boolean ackFinish = false;
             while (true)
             {
                 if(ackFinish){
                     break;
                 }
-                for (i = count; i <= lastCount; i++) {
+                for (i = base; i <= base+cwnd-1; i++) {
                     // Sender to Receiver 소켓,패킷 생성
                     DatagramSocket datagramSocket = new DatagramSocket();
                     DatagramPacket datagramPacket = new DatagramPacket(
@@ -102,8 +102,8 @@ public class UDPSender {
                         break;
                     }
                 }
-                count *= 2;
-                lastCount = count * 2;
+                base = base+cwnd;
+                cwnd  = cwnd * 2;
                 Thread.sleep(3000);
                 /*
                 혼잡제어 시작
