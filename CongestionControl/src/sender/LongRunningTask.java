@@ -1,5 +1,7 @@
 package sender;
 
+import same.Congestion;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -11,6 +13,9 @@ public class LongRunningTask implements Runnable {
     DatagramSocket datagramSocket;
 
     Semaphore mutex = Mutex.getInstance();
+
+    // 이 변수로 혼잡제어 하면 됌
+    Congestion con = Congestion.getInstance();
 
     public LongRunningTask(DatagramPacket ackPacket, DatagramSocket datagramSocket) {
         this.ackPacket = ackPacket;
