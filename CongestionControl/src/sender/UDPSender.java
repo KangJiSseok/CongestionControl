@@ -1,6 +1,7 @@
 package sender;
 
 import receiver.PacketLoss;
+import same.Congestion;
 import same.DataPacket;
 
 import java.io.*;
@@ -19,6 +20,9 @@ public class UDPSender {
     static List<Thread> timeoutThreads = new ArrayList<>();
 
     public static void main(String[] args) {
+
+        // 이 변수로 혼잡제어 하면 됌
+        Congestion con = Congestion.getInstance();
 
         try {
             PacketLoss packetLoss = new PacketLoss();
@@ -136,6 +140,9 @@ public class UDPSender {
 
     /* TimeOut 발생 */
     public static void TimeOut(DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket) {
+        // 이 변수로 혼잡제어 하면 됌
+        Congestion con = Congestion.getInstance();
+
         Semaphore mutex = Mutex.getInstance();
         try {
             System.out.println("TimeOut");

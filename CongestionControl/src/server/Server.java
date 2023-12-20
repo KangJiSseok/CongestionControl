@@ -15,16 +15,16 @@ public class Server {
         try{
             DatagramSocket socket = new DatagramSocket();
 
-            int cwnd = INITIAL_WINDOW_SIZE;
-            int base = 1;
-            int nextSeqNum = 0;
-            int dupAckCnt = 0;
-            int lastAckNum = 0;
-            int threshold = 8;
-            int lastSentNum = 0;
+            int cwnd;
+            int base;
+            int nextSeqNum;
+            int dupAckCnt;
+            int lastAckNum;
+            int threshold;
+            int lastSentNum;
+            int SeqNum;
+            int lastbyteSent;
             byte[] UserData = new byte[10000000];
-            int SeqNum = 1;
-            int lastbyteSent = 0;
             byte[] recvData = new byte[1024];
             while(true){
                 // 패킷 생성 및 전송
