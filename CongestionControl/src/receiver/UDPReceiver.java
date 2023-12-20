@@ -10,9 +10,13 @@ import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 
 public class UDPReceiver {
+
+    int lastAck = 0;
 
     public UDPReceiver(int port) {
 
@@ -43,13 +47,48 @@ public class UDPReceiver {
                 }
 
                 // 수신된 데이터 사용
-                System.out.println("Received Object: " + receivedObject.toString());
+                //System.out.println("Received Object: " + receivedObject.toString());
 
-                // 수신된 패킷 번호
-                System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신");
 
-                accumulatedData.write(serializedData, 0, receivedObject.getLength());
-                //역직렬화
+                PacketLoss packetLoss = new PacketLoss();
+//                switch (packetLoss.random()){
+//                    case 0 -> {
+//                        //정상
+//                        // 수신된 패킷 번호
+//                        System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신");
+//
+//                        //역직렬화
+//                        accumulatedData.write(serializedData, 0, receivedObject.getLength());
+//                    }
+//                    case 1 -> {
+//                        //수신오류
+//                        System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
+//                        receivedObject.setPacketNum(receivedObject.getPacketNum()-1); // 이전 패킷번호로 변경
+//                    }
+//                    case 2 -> {
+//                        //패킷손실
+//                        continue;
+//                    }
+//                }
+                if(packetLoss.random()){
+                    //정상
+                    // 수신된 패킷 번호
+                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신");
+                    if((lastAck+1)==receivedObject.getPacketNum()) {
+                        lastAck++;
+                    }
+
+                    //역직렬화
+                    accumulatedData.write(serializedData, 0, receivedObject.getLength());
+                }else {
+//                    //수신오류
+//                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
+//                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
+
+                    //패킷손실
+                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
+                    continue;
+                }
 
                 //IP주소 얻기
                 InetAddress address = datagramPacket.getAddress();
@@ -59,12 +98,18 @@ public class UDPReceiver {
                 //System.out.println("port = " + port);
 
                 //ackPacket 생성
-                byte[] ack = accumulatedData.toByteArray();
+                //byte[] ack = accumulatedData.toByteArray();
+                ByteBuffer buff = ByteBuffer.allocate(Integer.SIZE / 8);
+                ByteOrder order = ByteOrder.LITTLE_ENDIAN;
+                buff.order(order);
+                buff.putInt(lastAck);
+                byte[] ack = buff.array();
+
                 DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length, address, port);
                 datagramSocket.send(ackSendPacket);
 
                 // 송신한 패킷 번호 (=ack번호)
-                System.out.println( "<------" + receivedObject.getPacketNum() + "번 ack 송신");
+                System.out.println( "<------" + lastAck + "번 ack 송신");
 
                 // 필요에 따라 스트림을 닫아주는 것이 좋습니다.
                 objectInputStream.close();
