@@ -1,5 +1,6 @@
 package sender;
 
+import receiver.PacketLoss;
 import same.DataPacket;
 
 import java.io.*;
@@ -41,14 +42,20 @@ public class UDPSender {
                 System.out.println("StringHashMap.get(fileLine" + i + ") = " + StringHashMap.get("fileLine" + i));
                 i++;
             }
-            int bufferLen = i;
+
+            // 최종 패킷 개수
+            int packetLen = i;
             bufferedReader.close();
 
-            StringHashMap.forEach((key, value) -> {
+            var ref = new Object() {
+                int j = 0;
+            };
+            StringHashMap.forEach((key, value) ->
+            {
                 try {
                     stream = getStream(seq, value);
                     stringDataPacketHashMap.put("Packet" + k, stream);
-                    System.out.println("stringDataPacketHashMap1" + " = " + stringDataPacketHashMap.get("Packet" + k));
+                    System.out.println("stringDataPacketHashMap" + ref.j++ + " = " + stringDataPacketHashMap.get("Packet" + k));
                     seq += value.length;
                     k++; // 값을 사용한 후에 증가하도록 이동
                 } catch (IOException e) {
@@ -56,56 +63,52 @@ public class UDPSender {
                 }
             });
 
-
-            for (i = 0; i < bufferLen; i++) {
-                // Sender to Receiver 소켓,패킷 생성
-                DatagramSocket datagramSocket = new DatagramSocket();
-                DatagramPacket datagramPacket = new DatagramPacket(
-                        stringDataPacketHashMap.get("Packet" + i).buffer(),
-                        stringDataPacketHashMap.get("Packet" + i).buffer().length,
-                        InetAddress.getByName("localhost"),
-                        port);
-
-                // packetLoss
-                if (!packetLoss.random()) {
-                    System.out.println(i + "번패킷 잃어버림");
-                } else {
-                    System.out.println(i + "번패킷 전송함");
-                    datagramSocket.send(datagramPacket);
+            int count = 1;
+            int lastCount = 1;
+            boolean ackFinish = false;
+            while (true)
+            {
+                if(ackFinish){
+                    break;
                 }
+                for (i = count; i <= lastCount; i++) {
+                    // Sender to Receiver 소켓,패킷 생성
+                    DatagramSocket datagramSocket = new DatagramSocket();
+                    DatagramPacket datagramPacket = new DatagramPacket(
+                            stringDataPacketHashMap.get("Packet" + (i - 1)).buffer(),
+                            stringDataPacketHashMap.get("Packet" + (i - 1)).buffer().length,
+                            InetAddress.getByName("localhost"),
+                            port);
 
-                stringDataPacketHashMap.get("Packet" + i).objectOutputStream().close();
+                    datagramSocket.send(datagramPacket);
 
-                byte ack[] = new byte[10000];
-                DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
-                //타임아웃 스래드 생성
-                Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket));
-                thread.start();
-                timeoutThreads.add(thread);
-                Timer timer = new Timer();
-                TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket);
-                timer.schedule(timeOutTask, 3000);
+                    stringDataPacketHashMap.get("Packet" + (i - 1)).objectOutputStream().close();
+
+                    byte ack[] = new byte[10000];
+                    DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
+                    //타임아웃 스래드 생성
+                    Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket));
+                    thread.start();
+                    timeoutThreads.add(thread);
+                    Timer timer = new Timer();
+                    TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket);
+                    timer.schedule(timeOutTask, 3000);
+
+                    if(i == packetLen){
+                        ackFinish = true;
+                        break;
+                    }
+                }
+                count *= 2;
+                lastCount = count * 2;
             }
+
 
         } catch (SocketException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        // 모든 타임아웃 스레드가 종료될 때까지 기다림
-        for (Thread timeoutThread : timeoutThreads) {
-            try {
-                timeoutThread.join();
-                timeoutThread.interrupt();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        System.out.println("메인스레드 종료");
-        System.exit(0);
-
     }
 
     private static PacketStream getStream(int seq, byte[] bytes) throws IOException {
@@ -132,14 +135,11 @@ public class UDPSender {
         try {
             System.out.println("TimeOut");
             datagramSocket.send(datagramPacket);
-            System.out.println("재전송 했음");
-
             mutex.acquire();
             datagramSocket.receive(ackPacket);
             System.out.println("ackPacket = " + ackPacket.getLength());
             mutex.release();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

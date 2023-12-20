@@ -76,12 +76,18 @@ public class UDPReceiver {
                 System.out.println("receivedObject.getLength() = " + receivedObject.getLength());
                 System.out.println("receivedObject.getData() = " + new String(receivedObject.getData()));
 
-
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
     }
 
     public static void main(String[] args) {
