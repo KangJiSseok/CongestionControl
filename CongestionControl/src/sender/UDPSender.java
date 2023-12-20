@@ -73,9 +73,9 @@ public class UDPSender {
 
                 // packetLoss
                 if (!packetLoss.random()) {
-                    System.out.println(i + "번패킷 loss");
+                    System.out.println(i + "번 패킷 loss");
                 } else {
-                    System.out.println("------------------>" + i + "번패킷 송신");
+                    System.out.println("------------------>" + i + "번 패킷 송신");
                     datagramSocket.send(datagramPacket);
                 }
 
