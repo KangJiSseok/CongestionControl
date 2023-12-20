@@ -7,12 +7,14 @@ public class DataPacket implements Serializable {
     private int seq;
     private int length;
     private byte[] data;
+    private int packetNum;
 
 
-    public DataPacket(int seq, int length, byte[] data) {
+    public DataPacket(int seq, int length, byte[] data, int packetNum) {
         this.seq = seq;
         this.length = length;
         this.data = data;
+        this.packetNum = packetNum;
     }
 
     public int getSeq() {
@@ -42,9 +44,18 @@ public class DataPacket implements Serializable {
     @Override
     public String toString() {
         return "DataPacket{" +
+                "packetNum=" + packetNum +
                 "seq=" + seq +
                 ", length=" + length +
                 ", data=" + new String(data) +
                 '}';
+    }
+
+    public int getPacketNum() {
+        return packetNum;
+    }
+
+    public void setPacketNum(int packetNum) {
+        this.packetNum = packetNum;
     }
 }

@@ -43,7 +43,8 @@ public class UDPReceiver {
                 }
 
                 // 수신된 데이터 사용
-                System.out.println("Received Object: " + receivedObject.toString());
+                //System.out.println("Received Object: " + receivedObject.toString());
+                System.out.println( "------------------>" + receivedObject.getPacketNum() + "번 패킷 수신" );
 
                 accumulatedData.write(serializedData, 0, receivedObject.getLength());
                 //역직렬화
@@ -55,9 +56,10 @@ public class UDPReceiver {
 
                 //ackPacket 생성
                 byte[] ack = accumulatedData.toByteArray();
-                System.out.println("ack.length = " + ack.length);
+                //System.out.println("ack.length = " + ack.length);
                 DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length, address, port);
                 datagramSocket.send(ackSendPacket);
+                System.out.println( "<------" + receivedObject.getPacketNum() + "번 ack 송신");
 
                 // 필요에 따라 스트림을 닫아주는 것이 좋습니다.
                 objectInputStream.close();
@@ -71,9 +73,9 @@ public class UDPReceiver {
 //                System.out.println("수신된 데이터 = " + str);
 
                 // datagramPacket.getData() 함수는 byte[]로 반환.
-                System.out.println("receivedObject.getSeq() = " + receivedObject.getSeq());
-                System.out.println("receivedObject.getLength() = " + receivedObject.getLength());
-                System.out.println("receivedObject.getData() = " + new String(receivedObject.getData()));
+                //System.out.println("receivedObject.getSeq() = " + receivedObject.getSeq());
+                //System.out.println("receivedObject.getLength() = " + receivedObject.getLength());
+                //System.out.println("receivedObject.getData() = " + new String(receivedObject.getData()));
 
 
 

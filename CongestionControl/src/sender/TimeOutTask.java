@@ -15,20 +15,22 @@ public class TimeOutTask extends TimerTask{
 
     DatagramPacket ackPacket;
 
+    int i;
 
-    public TimeOutTask(Thread thread, Timer timer, DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket) {
+    public TimeOutTask(Thread thread, Timer timer, DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket, int i) {
         this.thread = thread;
         this.timer = timer;
         this.datagramPacket = datagramPacket;
         this.datagramSocket = datagramSocket;
         this.ackPacket = ackPacket;
+        this.i = i;
     }
 
     @Override
     public void run() {
         if(thread != null && thread.isAlive()){
             try {
-                UDPSender.TimeOut(datagramPacket,datagramSocket,ackPacket);
+                UDPSender.TimeOut(datagramPacket,datagramSocket,ackPacket, i);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
