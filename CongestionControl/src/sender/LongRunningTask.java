@@ -29,7 +29,7 @@ public class LongRunningTask implements Runnable {
 
     @Override
     public void run() {
-        Congestion instance = Congestion.getInstance();
+
         Semaphore mutex = Mutex.getInstance();
 
         int num;
@@ -40,11 +40,11 @@ public class LongRunningTask implements Runnable {
             num = buffer.getInt();
             System.out.println("<-----" + num + "번 ack 수신");
             UDPSender.cwndUP();
-            if(instance.getLastAckNum()==num){
+            if(con.getLastAckNum()==num){
                 mutex.acquire();
                 con.plusAckDup();
                 mutex.release();
-            }else if(instance.getLastAckNum()+1==num){
+            }else if(con.getLastAckNum()+1==num){
                 mutex.acquire();
                 con.setLastAckNum(num);
                 con.setAckDup(1);
