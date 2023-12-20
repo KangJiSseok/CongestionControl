@@ -5,10 +5,7 @@ import same.Congestion;
 import same.DataPacket;
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 
@@ -17,9 +14,9 @@ public class UDPSender {
     static PacketStream stream;
     private static int seq = 0;
     private static int k = 1;
-    static List<Thread> timeoutThreads = new ArrayList<>();
-    private static int cwnd = 1;
-    private static int threshold = 12;
+    static LinkedHashMap<Integer, Thread> timeoutThreads = new LinkedHashMap<>();
+
+    private static boolean reSend = false;
     static LinkedHashMap<String, byte[]> StringHashMap = new LinkedHashMap<>();
     static LinkedHashMap<String, PacketStream> stringDataPacketHashMap = new LinkedHashMap<>();
 
@@ -30,8 +27,6 @@ public class UDPSender {
         Semaphore mutex = Mutex.getInstance();
 
         try {
-            PacketLoss packetLoss = new PacketLoss();
-
 
             //파일 읽고 패킷에 미리 담아놓기
 
@@ -41,9 +36,9 @@ public class UDPSender {
             String path = System.getProperty("user.dir") + "/src/";
 
             //mac
-            //BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
             // window
-            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
+//            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
 
             while (true) {
                 readLine = bufferedReader.readLine();
@@ -76,15 +71,21 @@ public class UDPSender {
 
 
             boolean ackFinish = false;
+
+
             while (true)
             {
-                if(ackFinish){
-                    break;
-                }
-                if(con.getLastAckNum()==(con.getLastPacketNum()-1)){
+                if(con.getLastAckNum()==(con.getLastPacketNum()-1))
+                {
 
                     for (i = con.getBase(); i <= con.getBase()+con.getCwnd()-1; i++) {
                         // Sender to Receiver 소켓,패킷 생성
+
+                        if(reSend){
+                            reSend=false;
+                            con.plusLastPacketNum();
+                            continue;
+                        }
 
                         DatagramSocket datagramSocket = new DatagramSocket();
                         DatagramPacket datagramPacket = new DatagramPacket(
@@ -103,19 +104,18 @@ public class UDPSender {
                         //타임아웃 스래드 생성
                         Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket, con.getLastPacketNum()));
                         thread.start();
-                        timeoutThreads.add(thread);
+                        timeoutThreads.put(i,thread);
                         Timer timer = new Timer();
                         TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket, con.getLastPacketNum());
                         timer.schedule(timeOutTask, 3000);
-                        if(con.getLastPacketNum() == packetLen){
+
+                        if(con.getLastAckNum() == packetLen){
                             ackFinish = true;
                             break;
                         }
                         mutex.acquire();
                         con.plusLastPacketNum();
                         mutex.release();
-                        System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
-                        System.out.println("con.getLastPacketNum() = " + con.getLastPacketNum());
                     }
                 }
                 con.setBase(con.getBase()+con.getCwnd());
@@ -125,6 +125,21 @@ public class UDPSender {
                 /*
                 혼잡제어 시작
                  */
+
+                timeoutThreads.forEach((key,value)->{
+                    try {
+                        value.join();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }finally {
+                        value.interrupt();
+                    }
+                });
+
+                if(ackFinish){
+                    break;
+                }
+
             }
 
 
@@ -163,10 +178,10 @@ public class UDPSender {
         Semaphore mutex = Mutex.getInstance();
         try {
             System.out.println("*** " + i + "번 패킷 TimeOut! ***");
-            threshold = cwnd/2;
-            cwnd = 1;
-            System.out.println("cwnd 1로 변경 -> " + cwnd);
-            System.out.println("임게치 1/2로 설정 = " + threshold);
+            con.setThreshold(con.getCwnd()/2);
+            con.setCwnd(1);
+            System.out.println("cwnd 1로 변경 -> " + con.getCwnd());
+            System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
             datagramSocket.send(datagramPacket);
             System.out.println( "------------------>" + i + "번 패킷 재전송");
 
@@ -190,34 +205,39 @@ public class UDPSender {
         Semaphore mutex = Mutex.getInstance();
         try {
             System.out.println("*** " + ack + "번 Ack 3번 중복! ***");
-            threshold = cwnd/2;
-            cwnd = threshold;
-            System.out.println("cwnd 1/2로 변경 -> " + cwnd);
-            System.out.println("임게치 1/2로 설정 = " + threshold);
+            con.setThreshold(con.getCwnd()/2);
+            con.setCwnd(con.getThreshold());
+            System.out.println("cwnd 1/2로 변경 -> " + con.getCwnd());
+            System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
 
-//            DatagramPacket datagramPacket = new DatagramPacket(
-//                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
-//                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer().length,
-//                    InetAddress.getByName("localhost"),
-//                    port);
-//
-//            datagramSocket.send(datagramPacket);
-//            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
+            DatagramPacket datagramPacket = new DatagramPacket(
+                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
+                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer().length,
+                    InetAddress.getByName("localhost"),
+                    port);
+
+            datagramSocket.send(datagramPacket);
+            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
+            reSend = true;
 
             mutex.acquire();
 
             con.setAckDup(0);
             con.setLastPacketNum(ack+1);
 
-//            datagramSocket.receive(ackPacket);
+            datagramSocket.receive(ackPacket);
             mutex.release();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
-    public static void cwndUP() {
-        if(cwnd<threshold){ cwnd *= 2; }
-        else { cwnd++; }
-        System.out.println("cwnd : " + cwnd);
-    }
+//    public static void cwndUP() {
+//        if(cwnd<threshold){ cwnd *= 2; }
+//        else { cwnd++; }
+//        System.out.println("cwnd : " + cwnd);
+//    }
 }

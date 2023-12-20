@@ -6,7 +6,7 @@ public class PacketLoss {
 
     Random random =new Random();
     public boolean random(){
-        int rand = random.nextInt(3);  // 0 <= rand <10
+        int rand = random.nextInt(5);  // 0 <= rand <10
         if(rand >=1){
             return true;
         }
