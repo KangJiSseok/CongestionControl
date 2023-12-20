@@ -15,16 +15,14 @@ public class LongRunningTask implements Runnable {
     DatagramSocket datagramSocket;
     int packetNum;
     Semaphore mutex = Mutex.getInstance();
-    DatagramPacket datagramPacket;
 
     // 이 변수로 혼잡제어 하면 됌
     Congestion con = Congestion.getInstance();
 
-    public LongRunningTask(DatagramPacket datagramPacket, DatagramPacket ackPacket, DatagramSocket datagramSocket, int packetNum) {
+    public LongRunningTask( DatagramPacket ackPacket, DatagramSocket datagramSocket, int packetNum) {
         this.ackPacket = ackPacket;
         this.datagramSocket = datagramSocket;
         this.packetNum = packetNum;
-        this.datagramPacket = datagramPacket;
     }
 
     @Override
@@ -39,7 +37,7 @@ public class LongRunningTask implements Runnable {
             buffer.order(ByteOrder.LITTLE_ENDIAN);
             num = buffer.getInt();
             System.out.println("<-----" + num + "번 ack 수신");
-            UDPSender.cwndUP();
+            //UDPSender.cwndUP();
             if(con.getLastAckNum()==num){
                 mutex.acquire();
                 con.plusAckDup();
@@ -51,7 +49,7 @@ public class LongRunningTask implements Runnable {
                 mutex.release();
             }
             if(con.getAckDup()==3){
-                UDPSender.AckDUP(datagramPacket, datagramSocket, ackPacket, num);
+                UDPSender.AckDUP(datagramSocket, ackPacket, num);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

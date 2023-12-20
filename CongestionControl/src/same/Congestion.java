@@ -20,6 +20,8 @@ public class Congestion {
         lastAckNum=0;
         lastPacketNum=1;
         ackDup=0;
+        base=1;
+        cwnd=1;
     }
     public static Congestion getInstance() {
         if (instance == null) {
@@ -105,8 +107,11 @@ public class Congestion {
         return lastPacketNum;
     }
 
-    public void setLastPacketNum() {
+    public void plusLastPacketNum() {
         this.lastPacketNum++;
+    }
+    public void setLastPacketNum(int lastPacketNum) {
+        this.lastPacketNum = lastPacketNum;
     }
 
     public int getAckDup() {

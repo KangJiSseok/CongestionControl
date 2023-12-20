@@ -19,8 +19,9 @@ public class UDPSender {
     private static int k = 1;
     static List<Thread> timeoutThreads = new ArrayList<>();
     private static int cwnd = 1;
-    private static int threshold = 4;
-
+    private static int threshold = 12;
+    static LinkedHashMap<String, byte[]> StringHashMap = new LinkedHashMap<>();
+    static LinkedHashMap<String, PacketStream> stringDataPacketHashMap = new LinkedHashMap<>();
 
     public static void main(String[] args) {
 
@@ -33,8 +34,7 @@ public class UDPSender {
 
 
             //파일 읽고 패킷에 미리 담아놓기
-            LinkedHashMap<String, byte[]> StringHashMap = new LinkedHashMap<>();
-            LinkedHashMap<String, PacketStream> stringDataPacketHashMap = new LinkedHashMap<>();
+
             String readLine;
             byte[] bytes;
             int i = 0;
@@ -82,7 +82,8 @@ public class UDPSender {
                     break;
                 }
                 if(con.getLastAckNum()==(con.getLastPacketNum()-1)){
-                    for (i = 1; i <= cwnd; i++) {
+
+                    for (i = con.getBase(); i <= con.getBase()+con.getCwnd()-1; i++) {
                         // Sender to Receiver 소켓,패킷 생성
 
                         DatagramSocket datagramSocket = new DatagramSocket();
@@ -100,7 +101,7 @@ public class UDPSender {
                         byte ack[] = new byte[10000];
                         DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
                         //타임아웃 스래드 생성
-                        Thread thread = new Thread(new LongRunningTask(datagramPacket, ackPacket, datagramSocket, con.getLastPacketNum()));
+                        Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket, con.getLastPacketNum()));
                         thread.start();
                         timeoutThreads.add(thread);
                         Timer timer = new Timer();
@@ -111,11 +112,16 @@ public class UDPSender {
                             break;
                         }
                         mutex.acquire();
-                        con.setLastPacketNum();
+                        con.plusLastPacketNum();
                         mutex.release();
+                        System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
+                        System.out.println("con.getLastPacketNum() = " + con.getLastPacketNum());
                     }
                 }
+                con.setBase(con.getBase()+con.getCwnd());
+                con.setCwnd(con.getCwnd()*2);
                 Thread.sleep(4000);
+                System.out.println("-----------------------------------------------------------------------------------------------------------");
                 /*
                 혼잡제어 시작
                  */
@@ -177,7 +183,7 @@ public class UDPSender {
         }
     }
 
-    public static void AckDUP(DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket, int ack) {
+    public static void AckDUP(DatagramSocket datagramSocket, DatagramPacket ackPacket, int ack) {
         // 이 변수로 혼잡제어 하면 됌
         Congestion con = Congestion.getInstance();
 
@@ -188,17 +194,23 @@ public class UDPSender {
             cwnd = threshold;
             System.out.println("cwnd 1/2로 변경 -> " + cwnd);
             System.out.println("임게치 1/2로 설정 = " + threshold);
-            datagramSocket.send(datagramPacket);
-            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
+
+//            DatagramPacket datagramPacket = new DatagramPacket(
+//                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
+//                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer().length,
+//                    InetAddress.getByName("localhost"),
+//                    port);
+//
+//            datagramSocket.send(datagramPacket);
+//            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
 
             mutex.acquire();
 
             con.setAckDup(0);
+            con.setLastPacketNum(ack+1);
 
-            datagramSocket.receive(ackPacket);
+//            datagramSocket.receive(ackPacket);
             mutex.release();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
