@@ -10,6 +10,8 @@ import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 
 public class UDPReceiver {
@@ -58,8 +60,22 @@ public class UDPReceiver {
                 //System.out.println("address = " + address);
                 //System.out.println("port = " + port);
 
+                int k=0;
+
                 //ackPacket 생성
                 byte[] ack = accumulatedData.toByteArray();
+
+//                ByteBuffer buff = ByteBuffer.allocate(Integer.SIZE / 8);
+//                ByteOrder order = ByteOrder.LITTLE_ENDIAN;
+//                buff.order(order);
+//                buff.putInt(1);
+//                byte[] ack = buff.array();
+                //
+//                ByteBuffer buffer = ByteBuffer.wrap(ack);
+//                buffer.order(ByteOrder.LITTLE_ENDIAN);
+//                buffer.getInt();
+//
+                //
                 DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length, address, port);
                 datagramSocket.send(ackSendPacket);
 

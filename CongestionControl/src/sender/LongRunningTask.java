@@ -28,7 +28,7 @@ public class LongRunningTask implements Runnable {
         try {
             datagramSocket.receive(ackPacket);//block
             int length = ackPacket.getLength();
-            System.out.println("<-----" + packetNum + "번 ack 수신");
+            System.out.println("                                <-----" + packetNum + "번 ack 수신");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
