@@ -81,13 +81,13 @@ public class UDPReceiver {
                     //역직렬화
                     accumulatedData.write(serializedData, 0, receivedObject.getLength());
                 }else {
-//                    //수신오류
-//                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
-//                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
+                    //수신오류
+                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
+                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
 
                     //패킷손실
-                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
-                    continue;
+//                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
+//                    continue;
                 }
 
                 //IP주소 얻기

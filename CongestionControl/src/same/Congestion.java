@@ -13,7 +13,14 @@ public class Congestion {
     private int lastSentNum;
     private int SeqNum;
     private int lastbyteSent;
+    private int lastPacketNum;
+    private int ackDup;
 
+    private Congestion(){
+        lastAckNum=0;
+        lastPacketNum=1;
+        ackDup=0;
+    }
     public static Congestion getInstance() {
         if (instance == null) {
             instance = new Congestion();
@@ -92,5 +99,24 @@ public class Congestion {
 
     public void setLastbyteSent(int lastbyteSent) {
         this.lastbyteSent = lastbyteSent;
+    }
+
+    public int getLastPacketNum() {
+        return lastPacketNum;
+    }
+
+    public void setLastPacketNum() {
+        this.lastPacketNum++;
+    }
+
+    public int getAckDup() {
+        return ackDup;
+    }
+
+    public void setAckDup(int ackDup) {
+        this.ackDup = ackDup;
+    }
+    public void plusAckDup() {
+        this.ackDup++;
     }
 }

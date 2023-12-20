@@ -20,15 +20,13 @@ public class UDPSender {
     static List<Thread> timeoutThreads = new ArrayList<>();
     private static int cwnd = 1;
     private static int threshold = 4;
-    static int lastnum = 1;
-    static int lastAck = 0;
-    static int ackDup = 0;
 
 
     public static void main(String[] args) {
 
         // 이 변수로 혼잡제어 하면 됌
         Congestion con = Congestion.getInstance();
+        Semaphore mutex = Mutex.getInstance();
 
         try {
             PacketLoss packetLoss = new PacketLoss();
@@ -83,37 +81,41 @@ public class UDPSender {
                 if(ackFinish){
                     break;
                 }
-                for (i = 1; i <= cwnd; i++) {
-                    // Sender to Receiver 소켓,패킷 생성
+                if(con.getLastAckNum()==(con.getLastPacketNum()-1)){
+                    for (i = 1; i <= cwnd; i++) {
+                        // Sender to Receiver 소켓,패킷 생성
 
-                    DatagramSocket datagramSocket = new DatagramSocket();
-                    DatagramPacket datagramPacket = new DatagramPacket(
-                            stringDataPacketHashMap.get("Packet" + lastnum ).buffer(),
-                            stringDataPacketHashMap.get("Packet" + lastnum ).buffer().length,
-                            InetAddress.getByName("localhost"),
-                            port);
+                        DatagramSocket datagramSocket = new DatagramSocket();
+                        DatagramPacket datagramPacket = new DatagramPacket(
+                                stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).buffer(),
+                                stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).buffer().length,
+                                InetAddress.getByName("localhost"),
+                                port);
 
-                    datagramSocket.send(datagramPacket);
-                    System.out.println("-------------------->" + lastnum + "번 패킷 전송");
+                        datagramSocket.send(datagramPacket);
+                        System.out.println("-------------------->" + con.getLastPacketNum() + "번 패킷 전송");
 
-                    stringDataPacketHashMap.get("Packet" + lastnum ).objectOutputStream().close();
+                        stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).objectOutputStream().close();
 
-                    byte ack[] = new byte[10000];
-                    DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
-                    //타임아웃 스래드 생성
-                    Thread thread = new Thread(new LongRunningTask(datagramPacket, ackPacket, datagramSocket, lastnum));
-                    thread.start();
-                    timeoutThreads.add(thread);
-                    Timer timer = new Timer();
-                    TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket, lastnum);
-                    timer.schedule(timeOutTask, 3000);
-                    if(lastnum == packetLen){
-                        ackFinish = true;
-                        break;
+                        byte ack[] = new byte[10000];
+                        DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
+                        //타임아웃 스래드 생성
+                        Thread thread = new Thread(new LongRunningTask(datagramPacket, ackPacket, datagramSocket, con.getLastPacketNum()));
+                        thread.start();
+                        timeoutThreads.add(thread);
+                        Timer timer = new Timer();
+                        TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket, con.getLastPacketNum());
+                        timer.schedule(timeOutTask, 3000);
+                        if(con.getLastPacketNum() == packetLen){
+                            ackFinish = true;
+                            break;
+                        }
+                        mutex.acquire();
+                        con.setLastPacketNum();
+                        mutex.release();
                     }
-                    lastnum++;
                 }
-                Thread.sleep(3000);
+                Thread.sleep(4000);
                 /*
                 혼잡제어 시작
                  */
@@ -132,7 +134,7 @@ public class UDPSender {
     private static PacketStream getStream(int seq, byte[] bytes, int packetNum) throws IOException {
         System.arraycopy(bytes, 0, bytes, 0, bytes.length);
         DataPacket dataPacket = new DataPacket(seq, bytes.length, bytes, packetNum);
-        System.out.println("dataPacket.toString() = " + dataPacket.toString());
+        //System.out.println("dataPacket.toString() = " + dataPacket.toString());
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(new BufferedOutputStream(outputStream));
 
@@ -161,9 +163,11 @@ public class UDPSender {
             System.out.println("임게치 1/2로 설정 = " + threshold);
             datagramSocket.send(datagramPacket);
             System.out.println( "------------------>" + i + "번 패킷 재전송");
-            ackDup=0;
 
             mutex.acquire();
+
+            con.setAckDup(0);
+
             datagramSocket.receive(ackPacket);
             mutex.release();
         } catch (IOException e) {
@@ -173,22 +177,24 @@ public class UDPSender {
         }
     }
 
-    public static void AckDUP(DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket, int i) {
+    public static void AckDUP(DatagramPacket datagramPacket, DatagramSocket datagramSocket, DatagramPacket ackPacket, int ack) {
         // 이 변수로 혼잡제어 하면 됌
         Congestion con = Congestion.getInstance();
 
         Semaphore mutex = Mutex.getInstance();
         try {
-            System.out.println("*** " + i + "번 패킷 3번 중복! ***");
+            System.out.println("*** " + ack + "번 Ack 3번 중복! ***");
             threshold = cwnd/2;
             cwnd = threshold;
             System.out.println("cwnd 1/2로 변경 -> " + cwnd);
             System.out.println("임게치 1/2로 설정 = " + threshold);
             datagramSocket.send(datagramPacket);
-            System.out.println( "------------------>" + (i+1) + "번 패킷 재전송");
-            ackDup = 0;
+            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
 
             mutex.acquire();
+
+            con.setAckDup(0);
+
             datagramSocket.receive(ackPacket);
             mutex.release();
         } catch (IOException e) {

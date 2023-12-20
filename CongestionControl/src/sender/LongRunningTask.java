@@ -29,21 +29,32 @@ public class LongRunningTask implements Runnable {
 
     @Override
     public void run() {
+        Congestion instance = Congestion.getInstance();
+        Semaphore mutex = Mutex.getInstance();
+
+        int num;
         try {
             datagramSocket.receive(ackPacket);//block
             ByteBuffer buffer = ByteBuffer.wrap(ackPacket.getData());
             buffer.order(ByteOrder.LITTLE_ENDIAN);
-            System.out.println("<-----" + buffer.getInt() + "번 ack 수신");
+            num = buffer.getInt();
+            System.out.println("<-----" + num + "번 ack 수신");
             UDPSender.cwndUP();
-            if(UDPSender.lastAck==buffer.getInt()){
-                UDPSender.ackDup++;
+            if(instance.getLastAckNum()==num){
+                mutex.acquire();
+                con.plusAckDup();
+                mutex.release();
             }else{
-                UDPSender.lastAck=buffer.getInt();
+                mutex.acquire();
+                con.setLastAckNum(num);
+                mutex.release();
             }
-            if(UDPSender.ackDup==3){
-                UDPSender.AckDUP(datagramPacket, datagramSocket, ackPacket, buffer.getInt());
+            if(con.getAckDup()==3){
+                UDPSender.AckDUP(datagramPacket, datagramSocket, ackPacket, num);
             }
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
