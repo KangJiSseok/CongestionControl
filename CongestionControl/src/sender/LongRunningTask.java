@@ -20,7 +20,8 @@ public class LongRunningTask implements Runnable {
     @Override
     public void run() {
         try {
-            datagramSocket.receive(ackPacket);  //block
+            datagramSocket.receive(ackPacket);//block
+            int length = ackPacket.getLength();
             System.out.println("ackPacket = " + ackPacket.getLength());
         } catch (IOException e) {
             throw new RuntimeException(e);
