@@ -36,14 +36,17 @@ public class UDPSender {
             int i = 0;
             String path = System.getProperty("user.dir") + "/src/";
 
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            //mac
+            //BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            // window
+            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
 
             while (true) {
                 readLine = bufferedReader.readLine();
                 if (readLine == null) break;
                 bytes = readLine.getBytes();
                 StringHashMap.put("fileLine" + i, bytes);
-                System.out.println("StringHashMap.get(fileLine" + i + ") = " + StringHashMap.get("fileLine" + i));
+                //System.out.println("StringHashMap.get(fileLine" + i + ") = " + StringHashMap.get("fileLine" + i));
                 i++;
             }
 
@@ -57,9 +60,9 @@ public class UDPSender {
             StringHashMap.forEach((key, value) ->
             {
                 try {
-                    stream = getStream(seq, value);
+                    stream = getStream(seq, value, k);
                     stringDataPacketHashMap.put("Packet" + k, stream);
-                    System.out.println("stringDataPacketHashMap" + ref.j++ + " = " + stringDataPacketHashMap.get("Packet" + k));
+                    //System.out.println("stringDataPacketHashMap" + ref.j++ + " = " + stringDataPacketHashMap.get("Packet" + k));
                     seq += value.length;
                     k++; // 값을 사용한 후에 증가하도록 이동
                 } catch (IOException e) {
@@ -85,13 +88,14 @@ public class UDPSender {
                             port);
 
                     datagramSocket.send(datagramPacket);
+                    System.out.println("-------------------->" + i + "번 패킷 전송");
 
                     stringDataPacketHashMap.get("Packet" + (i - 1)).objectOutputStream().close();
 
                     byte ack[] = new byte[10000];
                     DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
                     //타임아웃 스래드 생성
-                    Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket));
+                    Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket, i));
                     thread.start();
                     timeoutThreads.add(thread);
                     Timer timer = new Timer();
@@ -120,9 +124,9 @@ public class UDPSender {
         }
     }
 
-    private static PacketStream getStream(int seq, byte[] bytes) throws IOException {
+    private static PacketStream getStream(int seq, byte[] bytes, int packetNum) throws IOException {
         System.arraycopy(bytes, 0, bytes, 0, bytes.length);
-        DataPacket dataPacket = new DataPacket(seq, bytes.length, bytes);
+        DataPacket dataPacket = new DataPacket(seq, bytes.length, bytes, packetNum);
         System.out.println("dataPacket.toString() = " + dataPacket.toString());
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(new BufferedOutputStream(outputStream));

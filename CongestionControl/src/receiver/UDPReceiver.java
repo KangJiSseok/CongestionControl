@@ -21,7 +21,7 @@ public class UDPReceiver {
             ByteArrayOutputStream accumulatedData = new ByteArrayOutputStream();
 
             while (true) {
-                System.out.println("프린트 다시 시작");
+                //System.out.println("프린트 다시 시작");
 
                 byte[] receivedData = new byte[512];
                 DatagramPacket datagramPacket = new DatagramPacket(receivedData, receivedData.length);
@@ -45,6 +45,9 @@ public class UDPReceiver {
                 // 수신된 데이터 사용
                 System.out.println("Received Object: " + receivedObject.toString());
 
+                // 수신된 패킷 번호
+                System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신");
+
                 accumulatedData.write(serializedData, 0, receivedObject.getLength());
                 //역직렬화
 
@@ -52,13 +55,16 @@ public class UDPReceiver {
                 InetAddress address = datagramPacket.getAddress();
                 //Port 주소 얻기
                 port = datagramPacket.getPort();
-                System.out.println("address = " + address);
-                System.out.println("port = " + port);
+                //System.out.println("address = " + address);
+                //System.out.println("port = " + port);
 
                 //ackPacket 생성
                 byte[] ack = accumulatedData.toByteArray();
                 DatagramPacket ackSendPacket = new DatagramPacket(ack, ack.length, address, port);
                 datagramSocket.send(ackSendPacket);
+
+                // 송신한 패킷 번호 (=ack번호)
+                System.out.println( "<------" + receivedObject.getPacketNum() + "번 ack 송신");
 
                 // 필요에 따라 스트림을 닫아주는 것이 좋습니다.
                 objectInputStream.close();
@@ -72,9 +78,9 @@ public class UDPReceiver {
 //                System.out.println("수신된 데이터 = " + str);
 
                 // datagramPacket.getData() 함수는 byte[]로 반환.
-                System.out.println("receivedObject.getSeq() = " + receivedObject.getSeq());
-                System.out.println("receivedObject.getLength() = " + receivedObject.getLength());
-                System.out.println("receivedObject.getData() = " + new String(receivedObject.getData()));
+                //System.out.println("receivedObject.getSeq() = " + receivedObject.getSeq());
+                //System.out.println("receivedObject.getLength() = " + receivedObject.getLength());
+                //System.out.println("receivedObject.getData() = " + new String(receivedObject.getData()));
 
                 try {
                     Thread.sleep(100);
