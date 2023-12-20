@@ -1,6 +1,6 @@
 package sender;
 
-import receiver.PacketLoss;
+
 import same.Congestion;
 import same.DataPacket;
 
@@ -34,12 +34,15 @@ public class UDPSender {
             String readLine;
             byte[] bytes;
             int i = 0;
+
+
             String path = System.getProperty("user.dir") + "/src/";
 
             //mac
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            //BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
+            BufferedReader bufferedReader = new BufferedReader(new FileReader( "C:\\Users\\USER\\Desktop\\CongestionControl\\CongestionControl\\src\\test.txt"));
             // window
-//            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
+            //BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
 
             while (true) {
                 readLine = bufferedReader.readLine();
@@ -78,7 +81,7 @@ public class UDPSender {
                 if(ackFinish){
                     break;
                 }
-                for (i = 0; i < con.getCwnd(); i++) {
+                for (i = con.getBase(); i <= con.getBase()+con.getCwnd()-1; i++) {
                     // Sender to Receiver 소켓,패킷 생성
                     int j = con.getNextSeqNum();
                     System.out.println("j = " + j);
@@ -93,7 +96,7 @@ public class UDPSender {
                         //보내고 나면 nextSeqNum ++;
                         datagramSocket.send(datagramPacket);
                         con.setNextSeqNum();
-                        System.out.println("-------------------->" + (j-1) + "번 패킷 전송");
+                        System.out.println("-------------------->" + (j) + "번 패킷 전송");
                     }
                     else{
                         System.out.println("-------------------->" + (j-1) + "번 패킷 사라짐");
@@ -117,6 +120,7 @@ public class UDPSender {
                 }
 
                 mutex.acquire();
+                con.setBase(con.getBase()+con.getCwnd());
                 con.setCwnd(con.getCwnd()*2);
                 lastCount += con.getCwnd();
                 mutex.release();
