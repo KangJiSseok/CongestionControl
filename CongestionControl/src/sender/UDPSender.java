@@ -30,9 +30,6 @@ public class UDPSender {
         Semaphore mutex = Mutex.getInstance();
 
         try {
-            PacketLoss packetLoss = new PacketLoss();
-
-
             //파일 읽고 패킷에 미리 담아놓기
 
             String readLine;
@@ -58,9 +55,6 @@ public class UDPSender {
             int packetLen = i;
             bufferedReader.close();
 
-            var ref = new Object() {
-                int j = 0;
-            };
             StringHashMap.forEach((key, value) ->
             {
                 try {
@@ -85,15 +79,16 @@ public class UDPSender {
 
 
                     //System.out.println("con.getSendCnt() = " + con.getSendCnt());
-                    if(!con.getDuplicated()){
-                        if(con.getCwnd()>con.getThreshold()&&!con.getTurnThreshold()){  //  getTurnThreshold = false
+                    if(!con.getDuplicated()){ // 한번 중복ACK발생하면 실행되고 이후 중복ACK발생해도 실행x,TimeOut발생 -> 조건문 만족, getDup은 중복ACK가 건드림. 그외엔 항상 조건문 만족
+                        if(con.getCwnd()>=con.getThreshold()&&!con.getTurnThreshold()){  //  getTurnThreshold = false
                         con.setCwnd(con.getThreshold());
-                        con.setTurnthreshold(true);}
+                        con.setTurnthreshold(true);  // 90행 조건문이 더이상 실행x ->     실행되면 계속해서 cwnd = threshold 가 되어버림.
+                            System.out.println("<<Slow-Start>>");}
                     }              // false -> true
 
-                    con.setSendCnt(con.getCwnd()); // 수정 필요
+                    con.setSendCnt(con.getCwnd());
                     con.setDuplicated(false);
-
+                    System.out.println("Cwnd : "+con.getCwnd());
                     for (i = con.getBase(); i <= con.getBase()+con.getCwnd()-1; i++) {
                         // Sender to Receiver 소켓,패킷 생성
 
@@ -131,7 +126,7 @@ public class UDPSender {
 //                    con.setBase(con.getBase()+con.getCwnd());
 //                    mutex.release();
                 }
-                Thread.sleep(4000);
+                Thread.sleep(3000);
                 System.out.println("===========================================");
             }
 
@@ -180,18 +175,19 @@ public class UDPSender {
                 con.setThreshold(con.getCwnd()/2);
             }
             con.setCwnd(1);
-
-            System.out.println("cwnd 1로 변경 -> " + con.getCwnd());
-            System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
-
             con.setAckDup(0);
             con.setLastPacketNum(i);
             con.setBase(i+1);
-            con.setTurnthreshold(false);
+            con.setTurnthreshold(false); // false로 하는 이유 : cwnd가 1로 되어 증가하다 Threshold에 도달하면 선형증가를 하기 위함. 즉 90행 조건문 만족시키기 위함.
             con.InitRecvCnt();
             con.InitSendCnt();
 
             mutex.release();
+
+            System.out.println("<<< Tahoe 알고리즘 작동 >>>");
+            System.out.println("cwnd 1로 변경 -> " + con.getCwnd());
+            System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
+
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -210,10 +206,13 @@ public class UDPSender {
             if(con.getThreshold()>1){
                 System.out.println("threshold 감소 ");
                 con.setThreshold(con.getCwnd()/2);
-                con.setTurnthreshold(true);
+                //con.setTurnthreshold(true);  // GoBackN방식으로 3-Dup-ACK가 여러번 발생하면 Cwnd와 Threshold가 두번 감소하게됨. 따라서 90행의 조건문을 한번만 돌게하기 위함.
+                // 추가로 threshold < cwnd 이므로 90행이 실행되어버림 -> 계속해서 cwnd값이 threshold값으로 setting되므로 이를 방지하기 위함.
+                // TODO .. 이후 중복ACK사건이 한번 더 발생하게 된다면??
             }
             con.setCwnd(con.getCwnd()/2+3);
 
+            System.out.println("<<< Reno 알고리즘 작동 >>>");
             System.out.println("cwnd 1/2+3로 변경 -> " + con.getCwnd());
             System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
             System.out.println();
@@ -227,20 +226,5 @@ public class UDPSender {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
-    public static void cwndUP() {
-        Congestion con = Congestion.getInstance();
-
-        Semaphore mutex = Mutex.getInstance();
-        try {
-            mutex.acquire();
-            if(con.getCwnd()<con.getThreshold()){ con.setCwnd(con.getCwnd()*2); }
-            else { con.setCwnd(con.getCwnd()+1); }
-            mutex.release();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        System.out.println("cwnd : " + con.getCwnd());
     }
 }
