@@ -71,17 +71,16 @@ public class UDPReceiver {
 //                        continue;
 //                    }
 //                }
-                if((receivedObject.getPacketNum()==2 && !resend)||(lastAck+1<receivedObject.getPacketNum())){
+                if((receivedObject.getPacketNum()==15 && !resend)||(lastAck+1<receivedObject.getPacketNum())){
                     //수신오류
-//                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
-//                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
-//
-//                    resend=true;
+                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
+                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
+                    resend=true;
 
                     //패킷손실
-                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
-                    resend=true;
-                    continue;
+                    //System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
+                    //resend=true;
+                    //continue;
                 } else {
                     //정상
                     // 수신된 패킷 번호

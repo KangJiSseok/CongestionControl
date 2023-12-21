@@ -17,9 +17,9 @@ public class UDPSender {
     static PacketStream stream;
     private static int seq = 0;
     private static int k = 1;
-    static List<Thread> timeoutThreads = new ArrayList<>();
-    private static int cwnd = 1;
-    private static int threshold = 12;
+    //static List<Thread> timeoutThreads = new ArrayList<>();
+    //private static int cwnd = 1;
+    //private static int threshold= 12;
     static LinkedHashMap<String, byte[]> StringHashMap = new LinkedHashMap<>();
     static LinkedHashMap<String, PacketStream> stringDataPacketHashMap = new LinkedHashMap<>();
 
@@ -43,7 +43,7 @@ public class UDPSender {
             //mac
             //BufferedReader bufferedReader = new BufferedReader(new FileReader(path + "test.txt"));
             // window
-            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\d\\IdeaProjects\\CongestionControl\\CongestionControl\\src\\test.txt"));
+            BufferedReader bufferedReader = new BufferedReader(new FileReader("C:\\Users\\USER\\Desktop\\CongestionControl\\CongestionControl\\src\\test.txt"));
 
             while (true) {
                 readLine = bufferedReader.readLine();
@@ -83,6 +83,17 @@ public class UDPSender {
                 }
                 if(con.getLastAckNum()==(con.getLastPacketNum()-1)){
 
+
+                    //System.out.println("con.getSendCnt() = " + con.getSendCnt());
+                    if(!con.getDuplicated()){
+                        if(con.getCwnd()>con.getThreshold()&&!con.getTurnThreshold()){  //  getTurnThreshold = false
+                        con.setCwnd(con.getThreshold());
+                        con.setTurnthreshold(true);}
+                    }              // false -> true
+
+                    con.setSendCnt(con.getCwnd()); // 수정 필요
+                    con.setDuplicated(false);
+
                     for (i = con.getBase(); i <= con.getBase()+con.getCwnd()-1; i++) {
                         // Sender to Receiver 소켓,패킷 생성
 
@@ -103,7 +114,7 @@ public class UDPSender {
                         //타임아웃 스래드 생성
                         Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket, con.getLastPacketNum()));
                         thread.start();
-                        timeoutThreads.add(thread);
+                        //timeoutThreads.add(thread);
                         Timer timer = new Timer();
                         TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket, con.getLastPacketNum());
                         timer.schedule(timeOutTask, 3000);
@@ -115,12 +126,13 @@ public class UDPSender {
                         con.plusLastPacketNum();
                         mutex.release();
                     }
+
 //                    mutex.acquire();
 //                    con.setBase(con.getBase()+con.getCwnd());
 //                    mutex.release();
                 }
                 Thread.sleep(4000);
-                System.out.println("-----------------------------------------------------------------------------------------------------------");
+                System.out.println("===========================================");
             }
 
 
@@ -175,6 +187,9 @@ public class UDPSender {
             con.setAckDup(0);
             con.setLastPacketNum(i);
             con.setBase(i+1);
+            con.setTurnthreshold(false);
+            con.InitRecvCnt();
+            con.InitSendCnt();
 
             mutex.release();
         } catch (InterruptedException e) {
@@ -193,15 +208,20 @@ public class UDPSender {
             mutex.acquire();
 
             if(con.getThreshold()>1){
+                System.out.println("threshold 감소 ");
                 con.setThreshold(con.getCwnd()/2);
+                con.setTurnthreshold(true);
             }
-            con.setCwnd(con.getThreshold());
+            con.setCwnd(con.getCwnd()/2+3);
 
-            System.out.println("cwnd 1/2로 변경 -> " + con.getCwnd());
+            System.out.println("cwnd 1/2+3로 변경 -> " + con.getCwnd());
             System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
-
+            System.out.println();
             con.setAckDup(0);
             con.setLastPacketNum(ack+1);
+            con.InitRecvCnt();
+            con.InitSendCnt();
+
 
             mutex.release();
         } catch (InterruptedException e) {

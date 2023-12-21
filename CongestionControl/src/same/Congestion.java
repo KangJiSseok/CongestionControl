@@ -15,6 +15,10 @@ public class Congestion {
     private int lastbyteSent;
     private int lastPacketNum;
     private int ackDup;
+    private int sendCnt;
+    private int recvCnt;
+    private boolean turnthreshold;
+    private boolean Duplicated;
 
     private Congestion(){
         lastAckNum=0;
@@ -23,6 +27,10 @@ public class Congestion {
         base=1;
         cwnd=1;
         threshold=6;
+        sendCnt = 0;
+        recvCnt = 0;
+        turnthreshold = false;
+        Duplicated = false;
     }
     public static Congestion getInstance() {
         if (instance == null) {
@@ -125,4 +133,36 @@ public class Congestion {
     public void plusAckDup() {
         this.ackDup++;
     }
+
+    public void setSendCnt(int sendCnt) {
+        this.sendCnt = sendCnt;
+    }
+    public int getSendCnt(){
+        return  sendCnt;
+    }
+    public void UpRecvCnt(){
+        this.recvCnt++;
+    }
+    public int getRecvCnt(){
+        return recvCnt;
+    }
+    public void InitSendCnt(){
+        this.sendCnt = 0;
+    }
+    public void InitRecvCnt(){
+        this.recvCnt = 0;
+    }
+    public void setTurnthreshold(boolean bool){
+        this.turnthreshold = bool;
+    }
+    public boolean getTurnThreshold(){
+        return  turnthreshold;
+    }
+    public boolean getDuplicated(){
+        return Duplicated;
+    }
+    public void setDuplicated(boolean bool){
+        this.Duplicated = bool;
+    }
+
 }
