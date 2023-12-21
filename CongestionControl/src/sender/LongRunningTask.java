@@ -37,7 +37,6 @@ public class LongRunningTask implements Runnable {
             buffer.order(ByteOrder.LITTLE_ENDIAN);
             num = buffer.getInt();
             System.out.println("<-----" + num + "번 ack 수신");
-            UDPSender.cwndUP();
             if(con.getLastAckNum()==num){
                 mutex.acquire();
                 con.plusAckDup();
@@ -46,6 +45,12 @@ public class LongRunningTask implements Runnable {
                 mutex.acquire();
                 con.setLastAckNum(num);
                 con.setAckDup(1);
+
+                // cwnd증가
+                if(con.getCwnd()<con.getThreshold()){ con.setCwnd(con.getCwnd()*2); }
+                else { con.setCwnd(con.getCwnd()+1); }
+                System.out.println("cwnd : " + con.getCwnd());
+
                 mutex.release();
             }
             if(con.getAckDup()==3){

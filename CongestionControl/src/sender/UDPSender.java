@@ -114,13 +114,10 @@ public class UDPSender {
                         mutex.acquire();
                         con.plusLastPacketNum();
                         mutex.release();
-                        //System.out.println("con.getBase() = " + con.getBase());
-                        //System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
-                        //System.out.println("con.getLastPacketNum() = " + con.getLastPacketNum());
                     }
-                    mutex.acquire();
-                    con.setBase(con.getBase()+con.getCwnd());
-                    mutex.release();
+//                    mutex.acquire();
+//                    con.setBase(con.getBase()+con.getCwnd());
+//                    mutex.release();
                 }
                 Thread.sleep(4000);
                 System.out.println("-----------------------------------------------------------------------------------------------------------");
@@ -160,24 +157,25 @@ public class UDPSender {
         Congestion con = Congestion.getInstance();
 
         Semaphore mutex = Mutex.getInstance();
+        if((con.getLastAckNum()+2<=i)||i==1) return;
+
         try {
             System.out.println("*** " + i + "번 패킷 TimeOut! ***");
 
             mutex.acquire();
 
-            con.setThreshold(con.getCwnd()/2);
+            if(con.getThreshold()>1){
+                con.setThreshold(con.getCwnd()/2);
+            }
             con.setCwnd(1);
 
             System.out.println("cwnd 1로 변경 -> " + con.getCwnd());
             System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
-            //datagramSocket.send(datagramPacket);
-            //System.out.println( "------------------>" + i + "번 패킷 재전송");
 
             con.setAckDup(0);
             con.setLastPacketNum(i);
             con.setBase(i+1);
 
-            //datagramSocket.receive(ackPacket);
             mutex.release();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -194,25 +192,17 @@ public class UDPSender {
 
             mutex.acquire();
 
-            con.setThreshold(con.getCwnd()/2);
+            if(con.getThreshold()>1){
+                con.setThreshold(con.getCwnd()/2);
+            }
             con.setCwnd(con.getThreshold());
 
             System.out.println("cwnd 1/2로 변경 -> " + con.getCwnd());
             System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
 
-//            DatagramPacket datagramPacket = new DatagramPacket(
-//                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
-//                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer().length,
-//                    InetAddress.getByName("localhost"),
-//                    port);
-//
-//            datagramSocket.send(datagramPacket);
-//            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
-
             con.setAckDup(0);
             con.setLastPacketNum(ack+1);
 
-//            datagramSocket.receive(ackPacket);
             mutex.release();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
