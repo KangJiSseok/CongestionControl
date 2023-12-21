@@ -114,8 +114,8 @@ public class UDPSender {
                         mutex.acquire();
                         con.plusLastPacketNum();
                         mutex.release();
-                        System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
-                        System.out.println("con.getLastPacketNum() = " + con.getLastPacketNum());
+                        //System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
+                        //System.out.println("con.getLastPacketNum() = " + con.getLastPacketNum());
                     }
                 }
                 con.setBase(con.getBase()+con.getCwnd());

@@ -17,6 +17,7 @@ import java.nio.ByteOrder;
 public class UDPReceiver {
 
     int lastAck = 0;
+    boolean resend = false;
 
     public UDPReceiver(int port) {
 
@@ -70,7 +71,18 @@ public class UDPReceiver {
 //                        continue;
 //                    }
 //                }
-                if(packetLoss.random()){
+                if(receivedObject.getPacketNum()==2 && !resend){
+                    //수신오류
+//                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
+//                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
+//
+//                    resend=true;
+
+                    //패킷손실
+                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
+                    resend=true;
+                    continue;
+                } else {
                     //정상
                     // 수신된 패킷 번호
                     System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신");
@@ -80,14 +92,6 @@ public class UDPReceiver {
 
                     //역직렬화
                     accumulatedData.write(serializedData, 0, receivedObject.getLength());
-                }else {
-                    //수신오류
-                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
-                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
-
-                    //패킷손실
-//                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
-//                    continue;
                 }
 
                 //IP주소 얻기
