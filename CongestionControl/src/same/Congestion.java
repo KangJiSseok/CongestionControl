@@ -22,6 +22,7 @@ public class Congestion {
         ackDup=0;
         base=1;
         cwnd=1;
+        threshold=6;
     }
     public static Congestion getInstance() {
         if (instance == null) {

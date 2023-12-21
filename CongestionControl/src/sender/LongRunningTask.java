@@ -37,7 +37,7 @@ public class LongRunningTask implements Runnable {
             buffer.order(ByteOrder.LITTLE_ENDIAN);
             num = buffer.getInt();
             System.out.println("<-----" + num + "번 ack 수신");
-            //UDPSender.cwndUP();
+            UDPSender.cwndUP();
             if(con.getLastAckNum()==num){
                 mutex.acquire();
                 con.plusAckDup();

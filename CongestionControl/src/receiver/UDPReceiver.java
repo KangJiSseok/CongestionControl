@@ -71,7 +71,7 @@ public class UDPReceiver {
 //                        continue;
 //                    }
 //                }
-                if(receivedObject.getPacketNum()==2 && !resend){
+                if(receivedObject.getPacketNum()==3 && !resend){
                     //수신오류
 //                    System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
 //                    receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경

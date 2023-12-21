@@ -114,17 +114,16 @@ public class UDPSender {
                         mutex.acquire();
                         con.plusLastPacketNum();
                         mutex.release();
+                        //System.out.println("con.getBase() = " + con.getBase());
                         //System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
                         //System.out.println("con.getLastPacketNum() = " + con.getLastPacketNum());
                     }
+                    mutex.acquire();
+                    con.setBase(con.getBase()+con.getCwnd());
+                    mutex.release();
                 }
-                con.setBase(con.getBase()+con.getCwnd());
-                con.setCwnd(con.getCwnd()*2);
                 Thread.sleep(4000);
                 System.out.println("-----------------------------------------------------------------------------------------------------------");
-                /*
-                혼잡제어 시작
-                 */
             }
 
 
@@ -163,21 +162,23 @@ public class UDPSender {
         Semaphore mutex = Mutex.getInstance();
         try {
             System.out.println("*** " + i + "번 패킷 TimeOut! ***");
-            threshold = cwnd/2;
-            cwnd = 1;
-            System.out.println("cwnd 1로 변경 -> " + cwnd);
-            System.out.println("임게치 1/2로 설정 = " + threshold);
-            datagramSocket.send(datagramPacket);
-            System.out.println( "------------------>" + i + "번 패킷 재전송");
 
             mutex.acquire();
 
-            con.setAckDup(0);
+            con.setThreshold(con.getCwnd()/2);
+            con.setCwnd(1);
 
-            datagramSocket.receive(ackPacket);
+            System.out.println("cwnd 1로 변경 -> " + con.getCwnd());
+            System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
+            //datagramSocket.send(datagramPacket);
+            //System.out.println( "------------------>" + i + "번 패킷 재전송");
+
+            con.setAckDup(0);
+            con.setLastPacketNum(i);
+            con.setBase(i+1);
+
+            //datagramSocket.receive(ackPacket);
             mutex.release();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -190,10 +191,14 @@ public class UDPSender {
         Semaphore mutex = Mutex.getInstance();
         try {
             System.out.println("*** " + ack + "번 Ack 3번 중복! ***");
-            threshold = cwnd/2;
-            cwnd = threshold;
-            System.out.println("cwnd 1/2로 변경 -> " + cwnd);
-            System.out.println("임게치 1/2로 설정 = " + threshold);
+
+            mutex.acquire();
+
+            con.setThreshold(con.getCwnd()/2);
+            con.setCwnd(con.getThreshold());
+
+            System.out.println("cwnd 1/2로 변경 -> " + con.getCwnd());
+            System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
 
 //            DatagramPacket datagramPacket = new DatagramPacket(
 //                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
@@ -203,8 +208,6 @@ public class UDPSender {
 //
 //            datagramSocket.send(datagramPacket);
 //            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
-
-            mutex.acquire();
 
             con.setAckDup(0);
             con.setLastPacketNum(ack+1);
@@ -216,8 +219,18 @@ public class UDPSender {
         }
     }
     public static void cwndUP() {
-        if(cwnd<threshold){ cwnd *= 2; }
-        else { cwnd++; }
-        System.out.println("cwnd : " + cwnd);
+        Congestion con = Congestion.getInstance();
+
+        Semaphore mutex = Mutex.getInstance();
+        try {
+            mutex.acquire();
+            if(con.getCwnd()<con.getThreshold()){ con.setCwnd(con.getCwnd()*2); }
+            else { con.setCwnd(con.getCwnd()+1); }
+            mutex.release();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("cwnd : " + con.getCwnd());
     }
 }
