@@ -1,6 +1,5 @@
 package sender;
 
-import receiver.PacketLoss;
 import same.Congestion;
 import same.DataPacket;
 
