@@ -75,68 +75,77 @@ public class UDPSender {
 
             while (true)
             {
-                if(con.getLastAckNum()==(con.getLastPacketNum()-1))
+
+                for (i = con.getBase(); i <= con.getBase() + con.getCwnd() - 1; i++)
                 {
+                    // Sender to Receiver 소켓,패킷 생성
 
-                    for (i = con.getBase(); i <= con.getBase()+con.getCwnd()-1; i++) {
-                        // Sender to Receiver 소켓,패킷 생성
+                    DatagramSocket datagramSocket = new DatagramSocket();
+//                        DatagramPacket datagramPacket = new DatagramPacket(
+//                                stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).buffer(),
+//                                stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).buffer().length,
+//                                InetAddress.getByName("localhost"),
+//                                port);
+                    DatagramPacket datagramPacket = new DatagramPacket(
+                            stringDataPacketHashMap.get("Packet" + con.getLastPacketNum()).buffer(),
+                            stringDataPacketHashMap.get("Packet" + con.getLastPacketNum()).buffer().length,
+                            InetAddress.getByName("localhost"),
+                            port);
 
-                        if(reSend){
-                            reSend=false;
-                            con.plusLastPacketNum();
-                            continue;
-                        }
+                    datagramSocket.send(datagramPacket);
 
-                        DatagramSocket datagramSocket = new DatagramSocket();
-                        DatagramPacket datagramPacket = new DatagramPacket(
-                                stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).buffer(),
-                                stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).buffer().length,
-                                InetAddress.getByName("localhost"),
-                                port);
+                    System.out.println("-------------------->" + con.getLastPacketNum() + "번 패킷 전송");
 
-                        datagramSocket.send(datagramPacket);
-                        System.out.println("-------------------->" + con.getLastPacketNum() + "번 패킷 전송");
+                    byte ack[] = new byte[10000];
+                    DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
+                    //타임아웃 스래드 생성
+                    Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket, i));
+                    thread.start();
+                    timeoutThreads.put(i, thread);
+                    Timer timer = new Timer();
+                    TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket, con.getLastPacketNum());
+                    timer.schedule(timeOutTask, 3000);
 
-                        stringDataPacketHashMap.get("Packet" + con.getLastPacketNum() ).objectOutputStream().close();
+                    mutex.acquire();
+                    con.plusLastPacketNum();
+                    con.setAckDup(0);
+                    mutex.release();
 
-                        byte ack[] = new byte[10000];
-                        DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, InetAddress.getByName("localhost"), port);
-                        //타임아웃 스래드 생성
-                        Thread thread = new Thread(new LongRunningTask(ackPacket, datagramSocket, con.getLastPacketNum()));
-                        thread.start();
-                        timeoutThreads.put(i,thread);
-                        Timer timer = new Timer();
-                        TimeOutTask timeOutTask = new TimeOutTask(thread, timer, datagramPacket, datagramSocket, ackPacket, con.getLastPacketNum());
-                        timer.schedule(timeOutTask, 3000);
+                    stringDataPacketHashMap.get("Packet" + i).objectOutputStream().close();
 
-                        if(con.getLastAckNum() == packetLen){
-                            ackFinish = true;
-                            break;
-                        }
-                        mutex.acquire();
-                        con.plusLastPacketNum();
-                        mutex.release();
+                    if (con.getLastPacketNum() == 22) {
+                        ackFinish = true;
                     }
                 }
-                con.setBase(con.getBase()+con.getCwnd());
-                con.setCwnd(con.getCwnd()*2);
+
+
+                mutex.acquire();
+                con.setUdpNumber(con.getLastPacketNum() - 1);
+                mutex.release();
+
                 Thread.sleep(4000);
+                mutex.acquire();
+                con.setBase(con.getBase() + con.getCwnd());
+                System.out.println("main-con.getUdpNumber() = " + con.getUdpNumber());
+                con.setCwnd(con.getCwnd() * 2);
+                mutex.release();
                 System.out.println("-----------------------------------------------------------------------------------------------------------");
                 /*
                 혼잡제어 시작
                  */
 
-                timeoutThreads.forEach((key,value)->{
+                timeoutThreads.forEach((key, value) -> {
                     try {
                         value.join();
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
-                    }finally {
+                    } finally {
                         value.interrupt();
                     }
                 });
 
-                if(ackFinish){
+                if (ackFinish) {
+
                     break;
                 }
 
@@ -149,6 +158,8 @@ public class UDPSender {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            mutex.release();
         }
     }
 
@@ -177,15 +188,14 @@ public class UDPSender {
 
         Semaphore mutex = Mutex.getInstance();
         try {
+            mutex.acquire();
             System.out.println("*** " + i + "번 패킷 TimeOut! ***");
-            con.setThreshold(con.getCwnd()/2);
+            con.setThreshold(con.getCwnd() / 2);
             con.setCwnd(1);
             System.out.println("cwnd 1로 변경 -> " + con.getCwnd());
             System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
             datagramSocket.send(datagramPacket);
-            System.out.println( "------------------>" + i + "번 패킷 재전송");
-
-            mutex.acquire();
+            System.out.println("------------------>" + i + "번 패킷 재전송");
 
             con.setAckDup(0);
 
@@ -204,28 +214,40 @@ public class UDPSender {
 
         Semaphore mutex = Mutex.getInstance();
         try {
-            System.out.println("*** " + ack + "번 Ack 3번 중복! ***");
-            con.setThreshold(con.getCwnd()/2);
+            mutex.acquire();
+            System.out.println("*** " + ack + "번 Ack " + con.getAckDup() + "번 중복! ***");
+            con.setThreshold(con.getCwnd() / 2);
             con.setCwnd(con.getThreshold());
             System.out.println("cwnd 1/2로 변경 -> " + con.getCwnd());
             System.out.println("임게치 1/2로 설정 = " + con.getThreshold());
+            System.out.println("con.getUdpNumber() = " + con.getUdpNumber());
+            System.out.println("con.getLastAckNum() = " + con.getLastAckNum());
+            System.out.println("con.getCwnd() = " + con.getCwnd());
+            for (int i = ack; i <= (con.getUdpNumber() - 1); i++) {
+//                DatagramPacket datagramPacket = new DatagramPacket(
+//                        stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
+//                        stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer().length,
+//                        InetAddress.getByName("localhost"),
+//                        port);
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        stringDataPacketHashMap.get("Packet" + (i + 1)).buffer(),
+                        stringDataPacketHashMap.get("Packet" + (i + 1)).buffer().length,
+                        InetAddress.getByName("localhost"),
+                        port);
 
-            DatagramPacket datagramPacket = new DatagramPacket(
-                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer(),
-                    stringDataPacketHashMap.get("Packet" + (ack+1) ).buffer().length,
-                    InetAddress.getByName("localhost"),
-                    port);
+                datagramSocket.send(datagramPacket);
+                System.out.println("------------------>" + (i + 1) + "번 패킷 재전송");
+//                reSend = true;
 
-            datagramSocket.send(datagramPacket);
-            System.out.println( "------------------>" + (ack+1) + "번 패킷 재전송");
-            reSend = true;
 
-            mutex.acquire();
+                con.setAckDup(0);
+                con.setLastPacketNum(i + 2);
 
-            con.setAckDup(0);
-            con.setLastPacketNum(ack+1);
-
-            datagramSocket.receive(ackPacket);
+                datagramSocket.receive(ackPacket);
+                System.out.println("<------------------" + (i + 1) + "번 패킷 재전송한거 ack");
+                con.setLastAckNum(i + 1);
+                System.out.println("datagramPacket = " + con.getLastAckNum());
+            }
             mutex.release();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

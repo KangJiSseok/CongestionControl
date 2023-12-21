@@ -15,13 +15,23 @@ public class Congestion {
     private int lastbyteSent;
     private int lastPacketNum;
     private int ackDup;
+    private int udpNumber;
+
+    public int getUdpNumber() {
+        return udpNumber;
+    }
+
+    public void setUdpNumber(int udpNumber) {
+        this.udpNumber = udpNumber;
+    }
 
     private Congestion(){
         lastAckNum=0;
         lastPacketNum=1;
-        ackDup=0;
+        ackDup=1;
         base=1;
         cwnd=1;
+        udpNumber =0;
     }
     public static Congestion getInstance() {
         if (instance == null) {

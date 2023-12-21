@@ -1,5 +1,7 @@
 package sender;
 
+import same.Congestion;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.Timer;
@@ -8,6 +10,7 @@ import java.util.concurrent.Semaphore;
 
 public class TimeOutTask extends TimerTask{
 
+    Congestion con = Congestion.getInstance();
     private Thread thread;
     private Timer timer;
     DatagramPacket datagramPacket;
