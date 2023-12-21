@@ -21,7 +21,7 @@ public class Congestion {
         ackDup=0;
         base=1;
         cwnd=1;
-        threshold=7;
+        threshold=6;
         sendCnt = 0;
         recvCnt = 0;
         turnthreshold = false;

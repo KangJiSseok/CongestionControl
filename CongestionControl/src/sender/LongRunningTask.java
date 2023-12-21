@@ -49,7 +49,7 @@ public class LongRunningTask implements Runnable {
                 // cwnd증가
                 // 쓰레쉬 홀드는 Sender에서.
                     if(con.getSendCnt()==con.getRecvCnt()){
-                        // System.out.println("cwnd : "+con.getCwnd());
+
                         con.InitSendCnt();
                         con.InitRecvCnt();
 
@@ -58,12 +58,7 @@ public class LongRunningTask implements Runnable {
 
                         if(con.getCwnd()<con.getThreshold()){ con.setCwnd(con.getCwnd()*2); }
                         else {
-                            //System.out.println("<<<Slow-Start>>>");
                             con.setCwnd(con.getCwnd()+1);}
-                        //System.out.println("실행됨");
-                        //System.out.println("con.getRecvCnt() = " + con.getRecvCnt());
-                        //System.out.println("con.getSendCnt() = " + con.getSendCnt());
-
                     }
 
 

@@ -18,15 +18,18 @@ public class UDPReceiver {
 
     int lastAck = 0;
     boolean resend = false;
+    int rand = 0;
 
     public UDPReceiver(int port) {
 
         try {
             DatagramSocket datagramSocket = new DatagramSocket(port);
             ByteArrayOutputStream accumulatedData = new ByteArrayOutputStream();
+            PacketLoss packetLoss = new PacketLoss();
+            rand = packetLoss.random();
+            System.out.println("오류 패킷번호 : " + rand);
 
             while (true) {
-                //System.out.println("프린트 다시 시작");
 
                 byte[] receivedData = new byte[512];
                 DatagramPacket datagramPacket = new DatagramPacket(receivedData, receivedData.length);
@@ -47,39 +50,19 @@ public class UDPReceiver {
                     throw new RuntimeException(e);
                 }
 
-                // 수신된 데이터 사용
-                //System.out.println("Received Object: " + receivedObject.toString());
 
-
-                PacketLoss packetLoss = new PacketLoss();
-//                switch (packetLoss.random()){
-//                    case 0 -> {
-//                        //정상
-//                        // 수신된 패킷 번호
-//                        System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신");
-//
-//                        //역직렬화
-//                        accumulatedData.write(serializedData, 0, receivedObject.getLength());
-//                    }
-//                    case 1 -> {
-//                        //수신오류
-//                        System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
-//                        receivedObject.setPacketNum(receivedObject.getPacketNum()-1); // 이전 패킷번호로 변경
-//                    }
-//                    case 2 -> {
-//                        //패킷손실
-//                        continue;
-//                    }
-//                }
-                if((receivedObject.getPacketNum()==20 && !resend)||(lastAck+1<receivedObject.getPacketNum())){
-                    //수신오류
-                    //System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류");
-                    //receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
-                    //resend=true;
-                    //패킷손실
-                    System.out.println("*** " + receivedObject.getPacketNum() + "번 패킷 손실! ***");
-                    resend=true;
-                    continue;
+                if((receivedObject.getPacketNum()==rand && !resend)||(lastAck+1<receivedObject.getPacketNum())){
+                    if(rand%2==0){
+                        //수신오류
+                        System.out.println("-------------------->" + receivedObject.getPacketNum() + "번 패킷 수신오류!!");
+                        receivedObject.setPacketNum(lastAck); // 정상수신된 마지막 패킷번호로 변경
+                        resend=true;
+                    } else {
+                        //패킷손실
+                        System.out.println("*************** " + receivedObject.getPacketNum() + "번 패킷 손실! ***************");
+                        resend=true;
+                        continue;
+                    }
                 }
                 else {
                     //정상
@@ -97,11 +80,8 @@ public class UDPReceiver {
                 InetAddress address = datagramPacket.getAddress();
                 //Port 주소 얻기
                 port = datagramPacket.getPort();
-                //System.out.println("address = " + address);
-                //System.out.println("port = " + port);
 
-                //ackPacket 생성
-                //byte[] ack = accumulatedData.toByteArray();
+                //ackPacket 생성, ack번호 담기
                 ByteBuffer buff = ByteBuffer.allocate(Integer.SIZE / 8);
                 ByteOrder order = ByteOrder.LITTLE_ENDIAN;
                 buff.order(order);
@@ -117,18 +97,6 @@ public class UDPReceiver {
                 // 필요에 따라 스트림을 닫아주는 것이 좋습니다.
                 objectInputStream.close();
                 inputStream.close();
-
-                //여기까지
-
-                //datagramPacket.getData() 함수는 byte[]로 반환.
-//
-//                String str = new String(datagramPacket.getData()).trim();
-//                System.out.println("수신된 데이터 = " + str);
-
-                // datagramPacket.getData() 함수는 byte[]로 반환.
-                //System.out.println("receivedObject.getSeq() = " + receivedObject.getSeq());
-                //System.out.println("receivedObject.getLength() = " + receivedObject.getLength());
-                //System.out.println("receivedObject.getData() = " + new String(receivedObject.getData()));
 
                 try {
                     Thread.sleep(100);
